@@ -37,7 +37,7 @@ FROM delhi_bus_data
 GROUP BY Year,bus_type ;
 
 
---  Count how mnay OLdest buses older than 30 years or 20 years --
+--  Count how many  buses older than 30 years or 20 years --
 
 SELECT  SUM(is_electric)AS AC_BUS ,SUM(is_manual)AS NON_AC ,SUM(total_buses_launched)AS launch,Year(current_date()) - Year AS age
 FROM delhi_bus_data  
@@ -67,7 +67,7 @@ FROM delhi_bus_data
 GROUP BY bus_type 
 ORDER BY Total_passengers DESC ;
 
--- YOY % Passengers to see which bus perfromanceimproved or decreased over time ) ? --
+-- YOY % Passengers to see which bus perfromance improved or decreased over time ) ? --
 
 
 -- TABLE 2 ---
@@ -122,13 +122,13 @@ VALUES
 -- AVG Waiting timing per bus type per month --- DO RAINS (WEATHER ) AFFECT PUBLIC  TRANSPORT PERFROMANCE ? --
 -- ARE Buses late during rainy season, winters or festivals  and during some peak hours ---
 
-SELECT monthname(travel_date),HOUR(travel_time) as Trvl_Hours,ROUND(AVG(avg_wait_time_minutes),2)AS Waiting_time,bus_type
+SELECT monthname(travel_date)as Months,HOUR(travel_time) as Trvl_Hours,ROUND(AVG(avg_wait_time_minutes),2)AS Waiting_time,bus_type
 FROM performance_of_delhi_buses 
-GROUP BY monthname(travel_date),bus_type,Trvl_Hours
-ORDER BY monthname(travel_date),Waiting_time;
+GROUP BY months,bus_type,Trvl_Hours
+ORDER BY months,Waiting_time;
 
 -- Avg time taken by bus type to travel one stop to other --
--- does season wise eg winter rainy season or festival trafftc  affetced the perfrmanceof buses extra security checks etc afctor ---
+
 
   SELECT monthname(travel_Date)AS Months,bus_type,ROUND(AVG(avg_travel_time_per_stop_minutes),2)AS Time_between_stops
   FROM performance_of_delhi_buses 
@@ -153,7 +153,7 @@ FROM performance_of_delhi_buses
 GROUP BY travel_time,bus_type
 ORDER BY Passengers DESC,waiting_time DESC ;
 
--- Gender based passengers distribution -- DOES our scheme PINK TICKET ETC impacted or increased female passengers --
+-- Gender based passengers distribution -- DOES PINK TICKET scheme  increased female passengers and to what % --
 
 SELECT YEAR(travel_Date)AS year,SUM(female_passengers)AS female,SUM(male_passengers)AS male,SUM(total_passengers)AS total
 FROM performance_of_delhi_buses
@@ -170,7 +170,7 @@ SELECT ROUND(100.0*total/male,2)
 FROM ALLS;
 
 
--- Monthly based passengers buses perfromance --- SEASONS AFFETCT ??? ---
+-- Month based passengers buses perfromance --- SEASONS AFFETCT ?---
 
 SELECT Monthname(travel_Date)AS Months,SUM(total_passengers) AS Passengers
 FROM performance_of_delhi_buses 
@@ -251,12 +251,12 @@ INSERT INTO bus_revenue (trip_date, bus_type, revenue, avg_fare) VALUES
 
 -- BUSES FARE BUS TYPE ACCORDINGLY ---
 
-SELECT Bus_type,DATE_FORMAT(trip_date,'%m-%Y')AS Dates,SUM(revenue)AS Tota_revenue 
+SELECT Bus_type,DATE_FORMAT(trip_date,'%m-%Y')AS Dates,SUM(revenue)AS Total_revenue 
 FROM bus_revenue 
 GROUP BY Bus_type, DATE_FORMAT(trip_date,'%m-%Y');
 
 
--- MOM % REVENUE --- Studies how mcuh people acually uisng public transport does providing free tickets to womens lead to loss ---
+-- MOM % REVENUE --- Studies how much people acually uisng public transport does providing free tickets to womens led to loss ---
 
 SELECT 
   bus_type,
@@ -276,7 +276,7 @@ ORDER BY
 -- Total customer distribution from which stops mainly -- Peak hrs done ---
 
 
--- Buses most common complaints their causes & how often does these occur ---
+-- Buses failure & their causes & how often does these occur ---
 
 CREATE TABLE bus_failures (
     failure_date DATE,
@@ -315,7 +315,7 @@ GROUP BY monthname(failure_date),Bus_type,failure_type,cause_description
 ORDER BY bus_failures DESC ;
 
 
--- How often does these failures occur ?  MOM % ---
+-- How often does these failures occur ?  MOM % --- Use Lag 
 
 SELECT monthname(failure_date)AS Months,Bus_type,failure_type,cause_description,SUM(total_buses_affected)AS bus_failures
 FROM bus_failures 
@@ -327,7 +327,7 @@ ORDER BY bus_failures DESC ;
 SELECT monthname(failure_date),failure_type,ROUND(AVG(total_buses_affected) OVER(ORDER BY failure_date  ROWS BETWEEN  2 PRECEDING AND  CURRENT ROW ),2) AS Frequently
 FROM bus_failures ;
 
--- HOW many buses are mantained out of total and how many still pending  --
+-- HOW many buses are mantained out of total and how many still pending ?  --
 
 SELECT * FROM bus_failures ;
 
@@ -499,20 +499,7 @@ CREATE TABLE delhi_metro (
     time_of_day TIME
 );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+-- Total metro launched  --
 
 SELECT year,month,metro_line,SUM(total_metros_operated)AS metro_launched
 FROM delhi_metro 
@@ -526,7 +513,8 @@ SUM(male_passengers)AS male
 FROM delhi_metro 
 GROUP BY metro_line ;
 
--- Passengers per metro line stations -- FIND THE CROWDED STATIONS ---
+
+-- Passengers per metro line stations -- FIND THE MOST CROWDED STATIONS ---
 
 
 WITH ALLS AS (
@@ -554,25 +542,19 @@ ORDER BY Revenue DESC ;
 
 
 
--- Revenue per sttations of each metro line find the TOP 3 --
+-- Revenue per stations of each metro line find the TOP 3 --
 
 
-WITH ALLS AS (
+
 SELECT  metro_line,station_name,SUM(fare_collected)AS Revenue
 FROM delhi_metro 
-GROUP BY metro_line,station_name ),
-
-TOP_3_Station_Revenue AS (
-SELECT metro_line,station_name,Revenue,ROW_NUMBER() OVER(PARTITION BY metro_line ORDER BY Revenue DESC )AS Rankx
-FROM ALLS
-GROUP BY  metro_line,station_name,Revenue )
-
-SELECT metro_line,station_name,Revenue
-FROM  TOP_3_Station_Revenue
-WHERE Rankx <=3 ; 
+GROUP BY metro_line,station_name
+ORDER BY Revenue DESC
+LIMIT 3 ; 	
 
 
 -- ALSO SHOW WHAT CONTRIBUTION   EG 20% FROM THIS STATION AND 80% FROM THIS ----)
+
 
 
 -- Count of Metro stations per metro lines --- ( To chehck in which year new stations added ) and that too which line ---
@@ -662,7 +644,7 @@ INSERT INTO metro_speed_performance (
 
 
 
--- AVG time taken by metro line to cover distanceb/w one station to other ---
+-- AVG waiting time taken by metro ---
 
 
 SELECT * FROM  metro_speed_performance;
@@ -681,7 +663,7 @@ GROUP BY Metro_line
 ORDER BY Travel_time DESC ;
 
 
--- Does months affect the waiting time or speed perfromance of metroes --
+-- Does months affect the waiting time or speed performance of metroes --
 
  SELECT Monthname(travel_date)AS Months, metro_line,ROUND( AVG(waiting_time_min),2) AS Waiting_time
  FROM  metro_speed_performance
@@ -734,7 +716,7 @@ ORDER BY Waiting_time DESC
 LIMIT 5 ;
 
 
--- Passengers Monthly  MOM % ---
+-- Passengers Monthly  MOM % --- During festival or rainy season people prefer rapido or cab more -- 
 
 SELECT  Monthname(travel_date)AS Months,SUM(total_passengers)AS Passengers
 FROM metro_speed_performance p
@@ -743,7 +725,7 @@ ON P.metro_line = M.metro_line
 GROUP BY Months ; 
 
 
--- MOM %   Passengers per metro line -- 
+-- MOM %   Passengers per metro line -- Yellow Line passegners increased by 15% in August 2024 ---
 
 WITH ALLS AS (
 SELECT Monthname(travel_date)as Months,P.metro_line,SUM(total_passengers)AS Ct_passengers
